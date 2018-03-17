@@ -1,0 +1,28 @@
+{
+  "name": "artifinalproject",
+  "version": "1.0.0",
+  "description": "A binary puzzle CSP solver.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/benedikthth/artiFinalProject.git"
+  },
+  "keywords": [
+    "artificial",
+    "intelligence"
+  ],
+  "author": "Benedikt H. Thordarson",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/benedikthth/artiFinalProject/issues"
+  },
+  "homepage": "https://github.com/benedikthth/artiFinalProject#readme",
+  
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-concat": "^2.6.1"
+  }
+}
