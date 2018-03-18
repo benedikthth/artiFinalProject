@@ -5,14 +5,14 @@ class Assignment{
   }
 
   add(variable, value){
-    //variable.value = value;
-    //console.log(value);
+
     if(value === undefined){
       throw 'Assignment.add called with value = undefined. did you forget to pass the value';
     }
     let t = new Variable(variable.name, variable.domain);
     t.value = value;
     this.variables[t.name] = t;
+
   }
 
   clone(){
@@ -31,9 +31,33 @@ class Assignment{
     return t;
   }
 
-  remove(variable){
-   delete  this.variables[variable.name] ;
+  isAssigned(variable){
+    if(typeof variable !== 'string'){
+      throw "Assignment.remove should receive string";
+    }
+
+    return (typeof this.variables[variable] !== 'undefined');
+
   }
+
+  remove(variable){
+   if(typeof variable !== 'string'){
+     throw "Assignment.remove should receive string";
+   }
+
+   let t = this.variables[variable];
+
+   if(t === undefined){
+     return null;
+   }
+
+   let n = new Variable(t.name, t.domain);
+   delete this.variables[variable];
+   return n;
+
+  }
+
+
 
   isComplete(){
     return (Object.values(this.variables).length === this.targetLength);
@@ -43,27 +67,57 @@ class Assignment{
 
   isValid(constraints){
 
-    if(doMeOnce){
-      console.log(this.variables);
-    }
 
     for (var i = 0; i < constraints.length; i++) {
       //fetch variables that this constraint applies to.
 
       let count = 0;
-      let varlist = constraints[i].variables.map(varname=>{
-        if( typeof this.variables[varname] === 'undefined'){
-          count += 1;
-          return new Variable(varname, [0, 1]);
-        } else  {
-          return this.variables[varname].clone();
+      let varlist;
+
+      if(constraints[i].hlc){
+
+        let preEmpt = false;
+
+        varlist = constraints[i].variables.map(lis=>{
+
+          let t = "";
+          //loop through all variables to fetch values.
+          for (var i = 0; i < lis.length; i++) {
+            if(typeof this.variables[lis[i]] !== 'undefined' ){
+              t += this.variables[lis[i]].value;
+            } else {
+              //if the variable isn't assigned the row/column can't
+              // fail. otherwize everything will fail
+              preEmpt = true;
+              return null;
+            }
+          }
+          //return amalgamation
+          return t;
+        }).filter((x)=>{return x!==null});
+
+        //there cannot be any comparison between 0-1 object.
+        if(varlist.length < 2){
+          continue;
         }
 
-      });
 
-      if(doMeOnce){
-        console.log(count, constraints[i].variables.length);
+
+      } else {
+
+        varlist = constraints[i].variables.map(varname=>{
+          if( typeof this.variables[varname] === 'undefined'){
+            count += 1;
+            return new Variable(varname, [0, 1]);
+          } else  {
+            return this.variables[varname].clone();
+          }
+
+        });
+
       }
+
+
       //this means that the current constraint doesn't have
       // any of its variables assigned. we don't care
       //
@@ -71,9 +125,6 @@ class Assignment{
         continue;
       }
 
-      if(doMeOnce){
-        console.log(varlist);
-      }
 
       //console.log(constraints[i], varlist, this.variables);
 

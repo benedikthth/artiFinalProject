@@ -29,18 +29,48 @@ var board = document.createElement('table');
 for (var y = 0; y < n; y++) {
   let row = document.createElement('tr');
   board.appendChild(row);
+
   for (var x = 0; x < n; x++) {
     let cell = document.createElement('td');
-    cells[makeVarName(x, y)] = cell;
+    let cname = makeVarName(x, y);
+
+
+    cell.onclick = ((c, n)=>{
+      switch(c.innerHTML){
+        case '':
+          c.innerHTML = '0';
+          doAssign(n, 0);
+          break;
+        case '0':
+          c.innerHTML = '1';
+          doAssign(n, 1);
+          break;
+        case '1':
+          c.innerHTML = '';
+          removeAssignment(n);
+          break;
+      }
+    }).bind(null, cell, cname);
+
+
+    cells[cname] = cell;
     row.appendChild(cell);
   }
 }
 
 document.body.appendChild(board);
 
+let btn = document.createElement('button');
+btn.innerHTML = 'SOLVE ME';
+btn.onclick = solveMe;
+document.body.appendChild(btn);
+
+
 /*-------------*/
 
-var csp = new CSP();
+
+
+var csp = new CSP(n*n);
 
 
 
@@ -54,7 +84,8 @@ for (var x = 0; x < n; x++) {
 
 
 }
-
+let cols = [];
+let rows = [];
 for (var y = 0; y < n; y++) {
   var rowVariables = [];
   var colVariables = [];
@@ -86,42 +117,31 @@ for (var y = 0; y < n; y++) {
   //console.log(rowVariables);
   csp.addConstraint(Constraint.noMajority, colVariables);
   csp.addConstraint(Constraint.noMajority, rowVariables);
+  cols.push(colVariables);
+  rows.push(rowVariables);
 }
 
-/*
-t.addVariable(new Variable("one", ['blue']) );
-t.addVariable(new Variable("two", ['blue']) );
-t.addVariable(new Variable("three", ['blue', 'red']) );
-t.addVariable(new Variable("four", ['blue', 'red']) );
-t.addVariable(new Variable("five", ['blue', 'red']) );
-t.addVariable(new Variable("six", ['blue', 'red']) );
-t.addVariable(new Variable("seven", ['blue', 'red']) );
-*/
-//all are different.
+//console.log(cols, rows);
 
-//t.addConstraint( Constraint.notAllTheSame , ['one', 'two', 'three', 'four', 'five', 'six', 'seven']);
+csp.addConstraint(Constraint.diffCols, cols, true);
+csp.addConstraint(Constraint.diffCols, rows, true);
 
+function doAssign(name, value){
+  csp.assignVariable(name, value);
+}
 
-//t.assignVariable('one', 'blue');
+function removeAssignment(name){
+  csp.unassignVariable(name);
+}
 
-//t.assignVariable('two', 'blue');
+function solveMe(){
+  let sol = csp.BT();
+  doBoard(sol);
+}
 
-//  t.assignVariable('three', 'yellow');
 function doBoard(assignment){
   //console.log(assignment);
   Object.keys(assignment.variables).forEach((x)=>{
     cells[x].innerHTML = assignment.variables[x].value;
   });
 }
-
-var sol = csp.BT2()/*.then((value)=>{
-  doBoard(value);
-});
-*/
-//console.log(cells);
-/*
-Object.keys(sol).forEach((x)=>{
-  //console.log(cells[x]);
-  cells[x].innerHTML = sol[x].value;
-});
-*/

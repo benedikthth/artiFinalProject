@@ -1,4 +1,4 @@
-var doMeOnce =false;
+var doMeOnce = true;
 
 class Constraint{
 
@@ -42,7 +42,14 @@ class Constraint{
 
   }
 
-  static diffRows(rowList){
+  static diffCols(rowList){
+    let valueMap = {}
+
+    for (var i = 0; i < rowList.length; i++) {
+      valueMap[rowList[i]] = 1;
+    }
+
+    return (Object.keys(valueMap).length == rowList.length);
 
   }
 
@@ -98,12 +105,6 @@ class Constraint{
         valueMap[x.value] = true;
       }
     });
-
-    if(doMeOnce){
-      //console.log(variableList);
-      //console.log(valueMap);
-      doMeOnce = false;
-    }
 
     return Object.keys(valueMap).length !== 1;
   }

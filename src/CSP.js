@@ -1,10 +1,10 @@
 
 class CSP {
 
-  constructor(){
-    this.assignment = {};//new MySet();
+  constructor(variable_number){
     this.constraints = [];
     this.unassigned = [];
+    this.initial_assignment = new Assignment(variable_number);
   }
 
 
@@ -12,54 +12,46 @@ class CSP {
   //
 
 
-  removeAssignment(variable){
 
-    let vname = (typeof variable === 'string')? variable: variable.nam;
 
-    this.assignment[vname].value = null;
+  assignVariable(v, value){
+    //v = "var_name"
+    if(typeof v !== 'string'){
+      throw "assignVariable should receive a string not a " + typeof v;
+    }
+    //variable to assign to.
+    let t;
 
+    //variable is not in the list of unassigneds. IT SHOULDNT!
+    if(this.initial_assignment.isAssigned(v)){
+
+      t = this.initial_assignment.remove(v);
+
+    } else {
+
+      //remove variable from unassigned variables.
+      this.unassigned = this.unassigned.filter((x)=>{
+        if(x.name === v){
+          t = x;
+          return false;
+        }
+        return true;
+      });
+    }
+
+    this.initial_assignment.add(t, value);
   }
 
-  getVariable(varname){
-    return this.assignment[varname];
-  }
-
-  assignVariable(Var, value){
-      let variable;
-
-      if(typeof Var === 'string'){
-        variable = this.assignment[Var];
-      } else {
-        variable = Var;
-      }
-      //let variable = this.assignment[varname];
-      //console.log(this.assignment);
-      //console.log(variable, varname);
-
-      if(variable.domain.indexOf(value) !== -1){
-        this.assignment[variable.name].value = value;
-      } else {
-        console.log(value + ', is out of domain for variable ', variable.name);
-      }
-  }
-
-
-  getUnassigneds(){
-    /*
-    let t = Object.keys(this.assignment).map(x=>{return this.getVariable(x);}).filter(x=>{return x.value == null;} );
-    return t;
-    */
-    let t = Object.entries(this.assignment).filter( x => { return (x[1].value == null); }).map((x)=>{return x[1];});
-    //console.log(t);
-    return t;
+  unassignVariable(v){
+    this.unassigned.push(this.initial_assignment.remove(v));
   }
 
 
-  BT2(assignment, unassigned){
+  BT(assignment, unassigned){
     //initial call?
     if(typeof assignment === 'undefined' || typeof unassigned == 'undefined'){
-      //console.log(this.unassigned);
-      assignment = new Assignment(this.unassigned.length);
+      //??
+      assignment = this.initial_assignment;
       unassigned = this.unassigned.map(x=>{ return x.clone(); });
     } else {
 
@@ -83,12 +75,12 @@ class CSP {
 
         let nassignment = assignment.clone() ;
         //console.log(nassignment, ulis);
-        let result = this.BT2(nassignment, ulis);
+        let result = this.BT(nassignment, ulis);
 
         if(result != null){
           return result;
         }
-        assignment.remove(v);
+        assignment.remove(v.name);
       }
     }
 
@@ -96,35 +88,6 @@ class CSP {
 
   }
 
-
-  BT(){
-
-    //assignment is complete if all variables have assignments.
-    if(this.checkAssignment()){
-      console.log('complete assignment');
-      //console.log(this.assignment);
-      return this.assignment;
-    }
-
-    let nextVar = this.getUnassigneds()[0];
-    let result = null;
-
-
-    for (var i = 0; i < nextVar.domain.length; i++) {
-      //assign variable.
-      this.assignVariable(nextVar, nextVar.domain[i]);
-
-      if( this.checkConstraints(nextVar) ){
-        this.BT();
-        if(this.checkAssignment() ){
-          return this.assignment;
-        }
-        this.removeAssignment(nextVar.name);
-      }
-    }
-
-    return null;
-  }
 
 
   /**
@@ -136,84 +99,12 @@ class CSP {
    */
 
   addVariable(variable){
-    this.assignment[variable.name] = variable;
     this.unassigned.push(variable);
     //this.assignment.push(new Variable(varname, domain));
   }
 
 
-  checkAssignment(){
-    let complete = true;
 
-    Object.keys(this.assignment).forEach((varname)=>{
-      if(this.assignment[varname].value === null){
-        complete = false;
-        //console.log(complete);
-      }
-    });
-
-
-    //let fulfillsConstraints = this.checkConstraints();
-
-    //console.log(complete, fulfillsConstraints);
-
-    return complete;
-
-  }
-
-
-  checkConstraints(variable){
-    //check for specific variable.
-
-
-    let constraintsToCheck;
-    if(typeof variable !== 'undefined'){
-      //fetch only the constraints that apply to this variable.
-      constraintsToCheck = this.constraints.filter((c)=>{
-
-        return ( c.variables.indexOf(variable.name) !== -1);
-
-      });
-
-
-    } else {
-      //all constraints.
-      constraintsToCheck = this.constraints;
-    }
-
-    console.log(constraintsToCheck);
-    //check if the thing is violating something idk.
-    let passing = true;
-    //loop through all constraints and check if they're met
-    //this.constraints.forEach( (constraint)=>{
-
-    constraintsToCheck.forEach( (constraint)=>{
-      //fetch all variable names that belong to the constraint.
-      let variables = (Object.keys(this.assignment).filter((x)=>{
-        return constraint.variables.indexOf(x) !== -1;
-      //map names to variables
-      })).map((x)=>{
-        //return assigned variable
-        if(typeof this.assignment[x] !== 'undefined'){
-          return this.assignment[x];
-        } else {
-          //or dummy variable
-          return new Variable(x, [0, 1]);
-        }
-      });
-
-      //console.log(variables);
-
-      //check the constraint against the variables.
-      if( constraint.constraintFunction(variables) == false){
-        //console.log('dick');
-        passing = false;
-      }
-
-
-    });
-    return passing;
-  }
 
 
 
@@ -224,9 +115,9 @@ class CSP {
    * @param  {String[]} variables  A list of variable names.
    * @return {type}            description
    */
-  addConstraint(constraint, variables){
+  addConstraint(constraint, variables, hlc){
 
-    this.constraints.push(new Constraint(constraint, variables));
+    this.constraints.push(new Constraint(constraint, variables, hlc));
 
   }
 
