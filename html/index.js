@@ -145,3 +145,9 @@ function doBoard(assignment){
     cells[x].innerHTML = assignment.variables[x].value;
   });
 }
+
+let newCsp = new CSP(3);
+newCsp.addVariable( new Variable( 'benni', [25, 24] ) );
+newCsp.addVariable( new Variable( 'gudni', [25]));
+newCsp.addVariable( new Variable( 'snorri',[23, 24, 25, 26]));
+newCsp.addConstraint(Constraint.AllDifferent, ['benni', 'gudni', 'snorri']);
