@@ -107,13 +107,14 @@ t.addVariable(new Variable("seven", ['blue', 'red']) );
 //t.assignVariable('two', 'blue');
 
 //  t.assignVariable('three', 'yellow');
-function doBoard(value){
-  Object.keys(value).forEach((x)=>{
-    cells[x].innerHTML = value[x].value;
+function doBoard(assignment){
+  //console.log(assignment);
+  Object.keys(assignment.variables).forEach((x)=>{
+    cells[x].innerHTML = assignment.variables[x].value;
   });
 }
 
-var sol = csp.BT()/*.then((value)=>{
+var sol = csp.BT2()/*.then((value)=>{
   doBoard(value);
 });
 */

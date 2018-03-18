@@ -1,8 +1,108 @@
+class Assignment{
+  constructor(length){
+    this.variables = {};
+    this.targetLength = length;
+  }
+
+  add(variable, value){
+    //variable.value = value;
+    //console.log(value);
+    if(value === undefined){
+      throw 'Assignment.add called with value = undefined. did you forget to pass the value';
+    }
+    let t = new Variable(variable.name, variable.domain);
+    t.value = value;
+    this.variables[t.name] = t;
+  }
+
+  clone(){
+    let t = new Assignment(this.targetLength);
+
+
+    Object.values(this.variables).forEach(variable=>{
+
+      if(typeof variable.value === 'undefined'){
+        throw "variable value is undefined";
+      }
+
+      let v = variable.clone();
+      t.add( variable.clone(), v.value);
+    });
+    return t;
+  }
+
+  remove(variable){
+   delete  this.variables[variable.name] ;
+  }
+
+  isComplete(){
+    return (Object.values(this.variables).length === this.targetLength);
+  }
+
+
+
+  isValid(constraints){
+
+    if(doMeOnce){
+      console.log(this.variables);
+    }
+
+    for (var i = 0; i < constraints.length; i++) {
+      //fetch variables that this constraint applies to.
+
+      let count = 0;
+      let varlist = constraints[i].variables.map(varname=>{
+        if( typeof this.variables[varname] === 'undefined'){
+          count += 1;
+          return new Variable(varname, [0, 1]);
+        } else  {
+          return this.variables[varname].clone();
+        }
+
+      });
+
+      if(doMeOnce){
+        console.log(count, constraints[i].variables.length);
+      }
+      //this means that the current constraint doesn't have
+      // any of its variables assigned. we don't care
+      //
+      if(count == constraints[i].variables.length){
+        continue;
+      }
+
+      if(doMeOnce){
+        console.log(varlist);
+      }
+
+      //console.log(constraints[i], varlist, this.variables);
+
+      //console.log(varlist);
+
+      if(!constraints[i].constraintFunction(varlist)){
+        //console.log('constraints failed for', constraints[i], varlist);
+        return false;
+      }
+
+    }
+    return true;
+  }
+
+
+}
+
+var doMeOnce =false;
+
 class Constraint{
 
 
 
-  constructor(constraintorFunction, variableList){
+  constructor(constraintorFunction, variableList, hlc){
+    if(typeof hlc !== 'undefined'){
+      this.hlc = hlc;
+    } else {
+      this.hlc = false;
+    }
     this.variables = variableList;
     this.constraintFunction = constraintorFunction;
   }
@@ -32,6 +132,10 @@ class Constraint{
     }
 
     return true;
+
+  }
+
+  static diffRows(rowList){
 
   }
 
@@ -67,6 +171,7 @@ class Constraint{
 
     let valueMap = {};
     //console.log(variableList);
+    /*
     for (var i = 0; i < variableList.length; i++) {
       // there's still a chance that the next assignment will satisfy this constraint.
       if(variableList[i].value == null){
@@ -75,10 +180,24 @@ class Constraint{
 
       if(typeof valueMap[variableList[i].value] === 'undefined'){
         valueMap[variableList[i].value] = 1;
-      } else {
-        valueMap[variableList[i].value] += 1;
       }
+
+    }*/
+
+    Object.values(variableList).forEach(x=>{
+      if(x.value === null){
+        valueMap["_"] = 1;
+      } else {
+        valueMap[x.value] = true;
+      }
+    });
+
+    if(doMeOnce){
+      //console.log(variableList);
+      //console.log(valueMap);
+      doMeOnce = false;
     }
+
     return Object.keys(valueMap).length !== 1;
   }
 
@@ -90,6 +209,7 @@ class CSP {
   constructor(){
     this.assignment = {};//new MySet();
     this.constraints = [];
+    this.unassigned = [];
   }
 
 
@@ -130,8 +250,55 @@ class CSP {
 
 
   getUnassigneds(){
+    /*
     let t = Object.keys(this.assignment).map(x=>{return this.getVariable(x);}).filter(x=>{return x.value == null;} );
     return t;
+    */
+    let t = Object.entries(this.assignment).filter( x => { return (x[1].value == null); }).map((x)=>{return x[1];});
+    //console.log(t);
+    return t;
+  }
+
+
+  BT2(assignment, unassigned){
+    //initial call?
+    if(typeof assignment === 'undefined' || typeof unassigned == 'undefined'){
+      //console.log(this.unassigned);
+      assignment = new Assignment(this.unassigned.length);
+      unassigned = this.unassigned.map(x=>{ return x.clone(); });
+    } else {
+
+      if( assignment.isComplete() ){
+        return assignment;
+      }
+    }
+
+    let v = unassigned.pop();
+
+    for (var i = 0; i < v.domain.length; i++) {
+
+      assignment.add(v, v.domain[i]);
+
+      if(assignment.isValid(this.constraints)){
+
+        //clone the unassigned list
+        let ulis = unassigned.map( x =>{
+          return x.clone  ();
+        });
+
+        let nassignment = assignment.clone() ;
+        //console.log(nassignment, ulis);
+        let result = this.BT2(nassignment, ulis);
+
+        if(result != null){
+          return result;
+        }
+        assignment.remove(v);
+      }
+    }
+
+    return null;
+
   }
 
 
@@ -149,6 +316,7 @@ class CSP {
 
 
     for (var i = 0; i < nextVar.domain.length; i++) {
+      //assign variable.
       this.assignVariable(nextVar, nextVar.domain[i]);
 
       if( this.checkConstraints(nextVar) ){
@@ -174,6 +342,7 @@ class CSP {
 
   addVariable(variable){
     this.assignment[variable.name] = variable;
+    this.unassigned.push(variable);
     //this.assignment.push(new Variable(varname, domain));
   }
 
@@ -222,13 +391,20 @@ class CSP {
     let passing = true;
     //loop through all constraints and check if they're met
     //this.constraints.forEach( (constraint)=>{
+
     constraintsToCheck.forEach( (constraint)=>{
       //fetch all variable names that belong to the constraint.
       let variables = (Object.keys(this.assignment).filter((x)=>{
         return constraint.variables.indexOf(x) !== -1;
       //map names to variables
       })).map((x)=>{
-        return this.assignment[x];
+        //return assigned variable
+        if(typeof this.assignment[x] !== 'undefined'){
+          return this.assignment[x];
+        } else {
+          //or dummy variable
+          return new Variable(x, [0, 1]);
+        }
       });
 
       //console.log(variables);
@@ -363,5 +539,13 @@ class Variable {
     this.domain = domain;
   }
 
+  clone(){
+
+    let k = this.domain.map(x=>{return x;});
+    let t = new Variable(this.name, k);
+    t.value = this.value;
+    return t;
+
+  }
 
 }

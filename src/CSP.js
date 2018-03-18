@@ -4,6 +4,7 @@ class CSP {
   constructor(){
     this.assignment = {};//new MySet();
     this.constraints = [];
+    this.unassigned = [];
   }
 
 
@@ -44,8 +45,55 @@ class CSP {
 
 
   getUnassigneds(){
+    /*
     let t = Object.keys(this.assignment).map(x=>{return this.getVariable(x);}).filter(x=>{return x.value == null;} );
     return t;
+    */
+    let t = Object.entries(this.assignment).filter( x => { return (x[1].value == null); }).map((x)=>{return x[1];});
+    //console.log(t);
+    return t;
+  }
+
+
+  BT2(assignment, unassigned){
+    //initial call?
+    if(typeof assignment === 'undefined' || typeof unassigned == 'undefined'){
+      //console.log(this.unassigned);
+      assignment = new Assignment(this.unassigned.length);
+      unassigned = this.unassigned.map(x=>{ return x.clone(); });
+    } else {
+
+      if( assignment.isComplete() ){
+        return assignment;
+      }
+    }
+
+    let v = unassigned.pop();
+
+    for (var i = 0; i < v.domain.length; i++) {
+
+      assignment.add(v, v.domain[i]);
+
+      if(assignment.isValid(this.constraints)){
+
+        //clone the unassigned list
+        let ulis = unassigned.map( x =>{
+          return x.clone  ();
+        });
+
+        let nassignment = assignment.clone() ;
+        //console.log(nassignment, ulis);
+        let result = this.BT2(nassignment, ulis);
+
+        if(result != null){
+          return result;
+        }
+        assignment.remove(v);
+      }
+    }
+
+    return null;
+
   }
 
 
@@ -63,6 +111,7 @@ class CSP {
 
 
     for (var i = 0; i < nextVar.domain.length; i++) {
+      //assign variable.
       this.assignVariable(nextVar, nextVar.domain[i]);
 
       if( this.checkConstraints(nextVar) ){
@@ -88,6 +137,7 @@ class CSP {
 
   addVariable(variable){
     this.assignment[variable.name] = variable;
+    this.unassigned.push(variable);
     //this.assignment.push(new Variable(varname, domain));
   }
 
@@ -136,13 +186,20 @@ class CSP {
     let passing = true;
     //loop through all constraints and check if they're met
     //this.constraints.forEach( (constraint)=>{
+
     constraintsToCheck.forEach( (constraint)=>{
       //fetch all variable names that belong to the constraint.
       let variables = (Object.keys(this.assignment).filter((x)=>{
         return constraint.variables.indexOf(x) !== -1;
       //map names to variables
       })).map((x)=>{
-        return this.assignment[x];
+        //return assigned variable
+        if(typeof this.assignment[x] !== 'undefined'){
+          return this.assignment[x];
+        } else {
+          //or dummy variable
+          return new Variable(x, [0, 1]);
+        }
       });
 
       //console.log(variables);

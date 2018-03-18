@@ -14,5 +14,13 @@ class Variable {
     this.domain = domain;
   }
 
+  clone(){
+
+    let k = this.domain.map(x=>{return x;});
+    let t = new Variable(this.name, k);
+    t.value = this.value;
+    return t;
+
+  }
 
 }
