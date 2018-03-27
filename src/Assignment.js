@@ -4,7 +4,14 @@ class Assignment{
     this.targetLength = length;
   }
 
-  add(variable, value){
+
+  /**
+   * assign - Assign a value to a variable.
+   *
+   * @param  {Variable} variable the variable to assign a value to.
+   * @param  {any} value         the value to assign to this variable.
+   */
+  assign(variable, value){
 
     if(value === undefined){
       throw 'Assignment.add called with value = undefined. did you forget to pass the value';
@@ -15,6 +22,12 @@ class Assignment{
 
   }
 
+
+  /**
+   * clone - Create a identical copy of this assignment and its' variables and constraints.
+   *
+   * @return {Assignment}  An identical clone of this assignment
+   */
   clone(){
     let t = new Assignment(this.targetLength);
 
@@ -26,11 +39,18 @@ class Assignment{
       }
 
       let v = variable.clone();
-      t.add( variable.clone(), v.value);
+      t.assign( variable.clone(), v.value);
     });
     return t;
   }
 
+
+  /**
+   * isAssigned - Checks if the variable has been given a value in this assignment.
+   *
+   * @param  {String} variable name of the variable to check for
+   * @return {Boolean}          true if the variable has a value.
+   */
   isAssigned(variable){
     if(typeof variable !== 'string'){
       throw "Assignment.remove should receive string";
@@ -40,33 +60,69 @@ class Assignment{
 
   }
 
-  remove(variable){
-   if(typeof variable !== 'string'){
+
+  /**
+   * remove - removes the variable with name = varname from the assignment
+   *
+   * @param  {String} varname The unique name of the variable
+   * @return {Variable}       the variable that was removed
+   */
+  remove(varname){
+   if(typeof varname !== 'string'){
      throw "Assignment.remove should receive string";
    }
 
-   let t = this.variables[variable];
+   let t = this.variables[varname];
 
    if(t === undefined){
      return null;
    }
 
    let n = new Variable(t.name, t.domain);
-   delete this.variables[variable];
+   delete this.variables[varname];
    return n;
 
   }
 
 
-
+  /**
+   * isComplete - Checks all the variables have been assigned a value;
+   *
+   * @return {boolean}  true if all values have been assigned
+   */
   isComplete(){
     return (Object.values(this.variables).length === this.targetLength);
   }
 
 
 
-  isValid(constraints){
+  /**
+   * isValid - Loops through the constraints and checks if the Assignment
+   * satisfies all of them
+   *
+   * @param  {Array<Constraint>} constraints List of constraints.
+   * @param  {string} varname     Optional, only checks the constraints that apply to the variable with varname.
+   * @return {boolean}             true iff the assignment satisfies the constraints,
+   */
+  isValid(constraints, varname){
 
+    if(typeof varname !== 'undefined'){
+
+   
+      ///filter out the constraints that don't have anything to do with this thing
+      constraints = constraints.filter(x=>{
+        
+        if(x.hlc){
+          return true;
+        }
+        
+        return typeof x.variableLookup[varname] !== 'undefined';
+          
+      });
+
+    }
+
+   
 
     for (var i = 0; i < constraints.length; i++) {
       //fetch variables that this constraint applies to.
@@ -105,6 +161,7 @@ class Assignment{
 
       } else {
 
+        //fetch all the relevant variables for the constraint.
         varlist = constraints[i].variables.map(varname=>{
           if( typeof this.variables[varname] === 'undefined'){
             count += 1;
@@ -117,21 +174,14 @@ class Assignment{
 
       }
 
-
       //this means that the current constraint doesn't have
-      // any of its variables assigned. we don't care
-      //
+      // any of its variables assigned. we don't care about it.
       if(count == constraints[i].variables.length){
         continue;
       }
 
-
-      //console.log(constraints[i], varlist, this.variables);
-
-      //console.log(varlist);
-
+      //check if the constraint fails.
       if(!constraints[i].constraintFunction(varlist)){
-        //console.log('constraints failed for', constraints[i], varlist);
         return false;
       }
 
