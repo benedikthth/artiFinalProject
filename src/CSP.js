@@ -64,7 +64,7 @@ class CSP {
       unassigneds.push(p);
 
       //check if the solution has unique solution
-      if(this.UniqueSolutionCheck( solution, unassigneds ) ){
+      if( this.UniqueSolutionCheck( solution, unassigneds ) ){
        
         attempts = 10;
         thresh -= 1;
@@ -92,47 +92,72 @@ class CSP {
 
   }
 
+
   
   /**
-   * Check if a board has a unique solution. Currently AD-HOC for Binary puzzles.
+   * Wrapper for initial call of the unique solution checker.
+   * 
+   * @param {Assignment} assignment 
+   * @param {List<Variable>} unassigned 
+   * @returns true if there is a unique solution for this assignment.
+   * 
+   * @memberOf CSP
+   */
+  UniqueSolutionCheck(assignment, unassigned){
+    let p = this._UniqueSolutionCheck(assignment, unassigned, false);
+    return p[0];
+  }
+  /**
+   * . 
+   * 
    * @param  {Assignment} assignement the assignment to check for double solution
    * @param  {List<Variable>} unassigned A list of variables to assign values to.
+   * @returns {Boolean[]} 2 booleans, the first one if a unique solution exists, the second one if 2 solutions exist.
    */
-  UniqueSolutionCheck(assignment, unassigned, foundSolution){  
+  _UniqueSolutionCheck(assignment, unassigned, foundSolution){  
     
     if(assignment.isComplete() || unassigned.length == 0){
-      return true;
+      return [true, false];
     }
 
-
+    //clone the unassigned list
     let _unassigned = unassigned.map( x=>{ return x.clone(); });
 
-    
+    //get the next variable
     let V = _unassigned.pop();
-    
-
+    //check for each value. whether a solution exists for this variable having this value.
     for(var i = 0; i < V.domain.length; i++){
-    
+      //clone assignment
       let _assignment = assignment.clone();
+      //assign value to assignment
       _assignment.assign(V, V.domain[i]);
-
+      //if the assignment is not valid via the constraints, continue.
       if(!_assignment.isValid(this.constraints, V.name)){
         continue;
       }
-
-      let t = this.UniqueSolutionCheck(_assignment, _unassigned);
+      //check for unique solution existing.
+      let t = this._UniqueSolutionCheck(_assignment, _unassigned, foundSolution);
       
-      if(t && foundSolution){
-        return false;
+      //if t[1] is set as true, that means that the recursive call found that the tree
+      //does not contain a solution.
+      if(t[1]){
+        //console.log('terminating');
+        //return false, and true, so the search knows to terminate the search
+        return [false, true];
       }
 
-      else if (t){
+      //this means that 
+      if(t[0] && foundSolution){
+        return [false, true];
+      }
+
+      else if (t[0]){
         foundSolution = true;
       }
-
+      
     }
-
-    return foundSolution;
+    
+    return [foundSolution, false];
   }
   
 
@@ -212,6 +237,7 @@ class CSP {
       unassigned = this.unassigned.map(x=>{ return x.clone(); });
     }
 
+    //if the assignment is completed, we return it.
     if( assignment.isComplete() ){
       return assignment;
     }
@@ -221,30 +247,34 @@ class CSP {
     let _assignment = assignment.clone();
     let _unassigned = unassigned.map(x=>{return x.clone();})
 
-
+    //get variable from the unassigned variables
     let v = _unassigned.pop();
-
+    //loop through the domain and check each 'Branch' for solution.
     for (var i = 0; i < v.domain.length; i++) {
-
+      //assign new value to the assignment...
       _assignment.assign(v, v.domain[i]);
-
+      //check the relevant constraints only.
       if(_assignment.isValid(this.constraints, v.name)){
+        //recurse.
 
+      
+
+        this.ConstraintPropagation(_assignment, _unassigned, v);
+
+     
         let result = this.BT(_assignment, _unassigned);
-
+        //if the result is valid, return it. 
         if(result != null){
           return result;
         }
-
+        //remove variable from assignment
         _assignment.remove(v.name);
       }
     }
-
+    //if we reach here without finding a solution. there's not one. 
     return null;
 
   }
-
-
 
 
 
@@ -261,7 +291,49 @@ class CSP {
   }
 
 
+  ConstraintPropagation(assignment, U, variable){
+    //make a copy of the unassigned variables.
+    //let U = unassigned;//.map(x=>{return x.clone()});
+    //
+    let C = Object.values(this.constraints).filter(x=>{return typeof x.variableLookup[variable.name] !== 'undefined'});
+   
+    let A = assignment.clone();
 
+    let V = U.filter(x=>{
+      for (let i = 0; i < C.length; i++) {
+
+        if( typeof C[i].variableLookup[x.name] !== 'undefined'){
+          return true;
+        }
+      }
+      return false;
+    });
+    
+    
+    for (let i = 0; i < V.length; i++) {
+      //for each variable V 
+      for(let j = V[i].domain.length-1; j >= 0; j--){
+        //for each value in variable domain in V
+        A.assign(V[i], V[i].domain[j]);
+        //check if the constraints are valid.
+        if(!A.isValid(C, V[i].name)){
+          //if not, remove that value from the variable domain
+          V[i].domain = V[i].domain.filter(x=>{return x !== V[i].domain[j]});
+          //if the domain is empty. then return null;
+          if(V[i].domain === []){
+            return null;
+          }
+        }
+      }
+      //remove V from A
+      A.remove(V[i].name);
+      
+    }
+
+    
+
+
+  }
 
 
 
