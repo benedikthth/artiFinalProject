@@ -259,8 +259,12 @@ class CSP {
 
       
 
-        this.ConstraintPropagation(_assignment, _unassigned, v);
+        //let p = this.ConstraintPropagation(_assignment, _unassigned, v);
 
+        //if(p == null){
+          //console.log('goo');
+        //  return null;
+        //}
      
         let result = this.BT(_assignment, _unassigned);
         //if the result is valid, return it. 
@@ -320,8 +324,8 @@ class CSP {
           //if not, remove that value from the variable domain
           V[i].domain = V[i].domain.filter(x=>{return x !== V[i].domain[j]});
           //if the domain is empty. then return null;
-          if(V[i].domain === []){
-            return null;
+          if(V[i].domain.length === 0){
+            return false;
           }
         }
       }
@@ -331,7 +335,7 @@ class CSP {
     }
 
     
-
+    return true;
 
   }
 
