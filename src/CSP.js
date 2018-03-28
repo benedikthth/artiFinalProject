@@ -259,14 +259,14 @@ class CSP {
 
       
 
-        //let p = this.ConstraintPropagation(_assignment, _unassigned, v);
+        let p = this.ConstraintPropagation(_assignment, _unassigned, v);
 
-        //if(p == null){
+        if(p == null){
           //console.log('goo');
-        //  return null;
-        //}
+          return null;
+        }
      
-        let result = this.BT(_assignment, _unassigned);
+        let result = this.BT(_assignment, p);
         //if the result is valid, return it. 
         if(result != null){
           return result;
@@ -295,9 +295,9 @@ class CSP {
   }
 
 
-  ConstraintPropagation(assignment, U, variable){
+  ConstraintPropagation(assignment, unassigned, variable){
     //make a copy of the unassigned variables.
-    //let U = unassigned;//.map(x=>{return x.clone()});
+    let U = unassigned.map(x=>{return x.clone()});
     //
     let C = Object.values(this.constraints).filter(x=>{return typeof x.variableLookup[variable.name] !== 'undefined'});
    
@@ -325,7 +325,7 @@ class CSP {
           V[i].domain = V[i].domain.filter(x=>{return x !== V[i].domain[j]});
           //if the domain is empty. then return null;
           if(V[i].domain.length === 0){
-            return false;
+            return null;
           }
         }
       }
@@ -335,7 +335,7 @@ class CSP {
     }
 
     
-    return true;
+    return U;
 
   }
 
